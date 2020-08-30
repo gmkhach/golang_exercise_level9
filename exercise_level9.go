@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"runtime"
 	"sync"
+	"sync/atomic"
 )
 
 type Person struct {
@@ -22,7 +23,6 @@ func main() {
 		1. In addition to the main goroutine, launch two additional goroutines that print something out.
 		2. Use waitgroups to make sure each goroutine finishes before your program exists.
 	*/
-
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -78,7 +78,6 @@ func main() {
 		3. The above will create a race condition. Prove that it is a race condition by using the -race flag
 	*/
 	counter := 0
-
 	wg.Add(100)
 
 	for i := 0; i < 100; i++ {
@@ -106,7 +105,6 @@ func main() {
 	*/
 	var mu sync.Mutex
 	counter = 0
-
 	wg.Add(100)
 
 	for i := 0; i < 100; i++ {
@@ -134,8 +132,26 @@ func main() {
 
 	/*
 		Exercise 5
-		Fix the race condition you created in exercise #4 by using package atomic
+		Fix the race condition you created in exercise #3 by using package atomic
 	*/
+	var incrementer int64
+	wg.Add(100)
+
+	for i := 0; i < 100; i++ {
+		go func(){
+			fmt.Println("Goroutines:", runtime.NumGoroutine())	
+			fmt.Println("Counter before:", atomic.LoadInt64(&incrementer))
+			
+			atomic.AddInt64(&incrementer, 1)
+			fmt.Println("Counter after:", atomic.LoadInt64(&incrementer))
+			
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+	fmt.Println("Counter final:", incrementer)
+
 
 	/*
 		Exercise 6
@@ -145,7 +161,8 @@ func main() {
 			b. go build
 			c. go install
 	*/
-
+	fmt.Println("OS:", runtime.GOOS)
+	fmt.Println("Architecture:", runtime.GOARCH)
 }
 
 func (p *Person) Speak() {
